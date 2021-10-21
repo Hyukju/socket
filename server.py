@@ -52,7 +52,7 @@ def run_server(host, port):
             
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Echo server -p port -i host")
-    parser.add_argument('-i', help="host_ip", required=True)
+    parser.add_argument('-i', help="host_ip", required=False, default=socket.gethostbyname(socket.gethostname()))
     parser.add_argument('-p', help="port_number", required=False, default=5000)    
 
     args = parser.parse_args()

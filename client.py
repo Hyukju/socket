@@ -44,7 +44,7 @@ def run_client(host, port, server_image_dir, save_dir):
                         print(f'File received successfully.')
 
 if __name__=='__main__':
-    parser = argparse.ArgumentParser(description="Echo client -p port -i host -s sever image directory -d save directory")
+    parser = argparse.ArgumentParser(description="Echo client -p port -i host -s server_image_directory -d save_directory")
     parser.add_argument('-i', help="host_ip", required=True)
     parser.add_argument('-p', help="port_number", required=True)    
     parser.add_argument('-s', help="server image directory", required=True)
