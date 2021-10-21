@@ -1,42 +1,54 @@
 import socket
-import os
+import argparse
+import buffer
+import os 
+def run_client(host, port, server_image_dir, save_dir):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((host, port))
 
-# 서버의 주소입니다. hostname 또는 ip address를 사용할 수 있습니다.
-HOST = '127.0.0.1'  
-# 서버에서 지정해 놓은 포트 번호입니다. 
-PORT = 9999       
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
 
-
-
-while True:        
-    
-    # 소켓 객체를 생성합니다. 
-    # 주소 체계(address family)로 IPv4, 소켓 타입으로 TCP 사용합니다.  
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    
-    # 지정한 HOST와 PORT를 사용하여 서버에 접속합니다. 
-    client_socket.connect((HOST, PORT))
-    
-    # 메시지를 수신합니다. 
-    filename = client_socket.recv(1024).decode('utf-8')
-    print('filename:', filename)
-    if not filename:
-        break
-    data = client_socket.recv(1024)
-    data_transferred = 0
-    with open(filename, 'wb') as f: #현재dir에 filename으로 파일을 받는다
-        try:
-            while data: #데이터가 있을 때까지
-                f.write(data) #1024바이트 쓴다
-                data_transferred += len(data)
-                data = client_socket.recv(1024) #1024바이트를 받아 온다
-        except Exception as ex:
-            print(ex)
-        print('파일 %s 받기 완료. 전송량 %d' %(filename, data_transferred))
-
+    with s:
+        sbuf = buffer.Buffer(s)
         
-  
-# 소켓을 닫습니다.
-client_socket.close()
+        sbuf.put_utf8(server_image_dir)
 
-    
+        count = 0
+        while True:
+            received = sbuf.get_utf8()
+
+            if received == 'END':
+                print()
+                break
+            elif 'Error' in received:
+                print(received)
+                break
+            else:
+                count += 1
+                file_name = received
+                file_size = int(sbuf.get_utf8())
+                print(f'{count}. {file_name}, file size: ', file_size )
+
+                with open(os.path.join(save_dir,file_name), 'wb') as f:
+                    remaining = file_size
+                    while remaining:
+                        chunk_size = 4096 if remaining >= 4096 else remaining
+                        chunk = sbuf.get_bytes(chunk_size)
+                        if not chunk: break
+                        f.write(chunk)
+                        remaining -= len(chunk)
+                    if remaining:
+                        print('File incomplete.  Missing',remaining,'bytes.')
+                    else:
+                        print(f'File received successfully.')
+
+if __name__=='__main__':
+    parser = argparse.ArgumentParser(description="Echo client -p port -i host -s sever image directory -d save directory")
+    parser.add_argument('-i', help="host_ip", required=True)
+    parser.add_argument('-p', help="port_number", required=True)    
+    parser.add_argument('-s', help="server image directory", required=True)
+    parser.add_argument('-d', help="save directory", required=True)
+
+    args = parser.parse_args()
+    run_client(host=args.i, port=int(args.p), server_image_dir=args.s, save_dir=args.d)
